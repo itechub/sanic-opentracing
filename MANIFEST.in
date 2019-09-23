@@ -1,0 +1,2 @@
+include versioneer.py
+include sanic_opentracing/_version.py
