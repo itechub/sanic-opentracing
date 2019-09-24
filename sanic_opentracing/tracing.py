@@ -75,7 +75,9 @@ class SanicTracing(opentracing.Tracer):
             @wraps(f)
             async def decorated_function(request, *args, **kwargs):
                 if self._trace_all_requests:
-                    return f(request, *args, **kwargs)
+                    response = f(request, *args, **kwargs)
+                    if isawaitable(response):
+                        return await response
 
                 self._before_request_fn(request, list(attributes))
                 try:
