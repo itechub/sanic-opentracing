@@ -12,14 +12,13 @@ from opentracing.ext import tags
 class SanicTracing(opentracing.Tracer):
     def __init__(
         self,
-        tracer: opentracing.tracer,
+        tracer: opentracing.tracer = None,
         app: Sanic = None,
         traced_attributes: List[AnyStr] = None,
         start_span_cb: Callable = None,
-        trace_all_requests: bool = True,
+        trace_all_requests: bool = False,
         *exceptions: List[Exception],
     ):
-
         if start_span_cb is not None and not callable(start_span_cb):
             raise ValueError("start_span_cb is not callable")
 
@@ -78,6 +77,7 @@ class SanicTracing(opentracing.Tracer):
                     response = f(request, *args, **kwargs)
                     if isawaitable(response):
                         return await response
+                    return response
 
                 self._before_request_fn(request, list(attributes))
                 try:
@@ -103,9 +103,8 @@ class SanicTracing(opentracing.Tracer):
         If there is no such span, get_span returns None.
         @param request the request to get the span from
         """
-        if request is None and stack.top:
-            request = stack.top.request
-
+        if request is None:
+            return None
         scope = self._current_scopes.get(request, None)
         return None if scope is None else scope.span
 

@@ -1,2 +1,4 @@
 sanic==19.6.3
 opentracing==2.2.0
+pytest==5.1.3
+mock==3.0.5
