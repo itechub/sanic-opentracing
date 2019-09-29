@@ -17,7 +17,7 @@ class SanicTracing(opentracing.Tracer):
         traced_attributes: List[AnyStr] = None,
         start_span_cb: Callable = None,
         trace_all_requests: bool = False,
-        *exceptions: List[Exception],
+        exceptions: List[Exception] = [],
     ):
         if start_span_cb is not None and not callable(start_span_cb):
             raise ValueError("start_span_cb is not callable")
@@ -27,12 +27,12 @@ class SanicTracing(opentracing.Tracer):
                 f"trace_all_requests={trace_all_requests} requires a non None app"
             )
 
-        if not callable(tracer):
-            self._tracer = tracer
-            self._tracer_getter = None
+        if tracer is None:
+            self.tracer = opentracing.tracer
+        elif callable(tracer):
+            self.tracer = tracer()
         else:
-            self._tracer = None
-            self._tracer_getter = tracer
+            self.tracer = tracer
 
         self._trace_all_requests = trace_all_requests
         self._start_span_cb = start_span_cb
@@ -42,7 +42,6 @@ class SanicTracing(opentracing.Tracer):
         self._app = app
 
         if self._trace_all_requests and self._app:
-
             @app.middleware(middleware_or_request="request")
             def start_trace(request: Request):
                 self._before_request_fn(request, self._attributes)
@@ -60,14 +59,6 @@ class SanicTracing(opentracing.Tracer):
                         self._after_request_fn(
                             request=request, response=None, error=exception
                         )
-
-    @property
-    def tracer(self):
-        if not self._tracer:
-            if self._tracer_getter is None:
-                return opentracing.tracer
-            self._tracer = self._tracer_getter()
-        return self._tracer
 
     def trace(self, *attributes):
         def decorator(f):
@@ -87,11 +78,9 @@ class SanicTracing(opentracing.Tracer):
                     self._after_request_fn(request, response, None)
                     return response
                 except Exception as e:
-                    if self._exceptions_to_trace and e in self._exceptions_to_trace:
+                    if self._exceptions_to_trace and type(e) in self._exceptions_to_trace:
                         self._after_request_fn(request, None, e)
                     raise
-                self._after_request_fn()
-
             return decorated_function
 
         return decorator
@@ -105,7 +94,7 @@ class SanicTracing(opentracing.Tracer):
         """
         if request is None:
             return None
-        scope = self._current_scopes.get(request, None)
+        scope = self._current_scopes.get(repr(request), None)
         return None if scope is None else scope.span
 
     def _before_request_fn(self, request: Request, attributes: List[AnyStr] = None):
@@ -121,7 +110,6 @@ class SanicTracing(opentracing.Tracer):
             opentracing.SpanContextCorruptedException,
         ):
             scope = self.tracer.start_active_span(operation_name)
-
         self._current_scopes[repr(request)] = scope
 
         span = scope.span
@@ -129,7 +117,6 @@ class SanicTracing(opentracing.Tracer):
         span.set_tag(tags.HTTP_METHOD, request.method)
         span.set_tag(tags.HTTP_URL, request.url)
         span.set_tag(tags.SPAN_KIND, tags.SPAN_KIND_RPC_SERVER)
-
         for attr in attributes:
             if hasattr(request, attr):
                 payload = str(getattr(request, attr))
