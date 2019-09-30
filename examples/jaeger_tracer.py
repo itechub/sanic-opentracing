@@ -1,6 +1,5 @@
 import os
 from jaeger_client import Config
-from sanic_opentracing import SanicTracing
 
 JAEGER_HOST = os.environ.get("JAEGER_HOST ", "localhost")
 
