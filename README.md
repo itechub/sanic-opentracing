@@ -22,7 +22,7 @@ Run the following command:
 
 ```
  $ pip install sanic_opentracing
-```    
+```
 
 ## Usage
 
@@ -106,7 +106,45 @@ def some_view_func(request):
 
 See [Examples](examples/) to view and run an example of Sanic applications with integrated OpenTracing tracers.
 
-## Development Workflow
+## Version Release
+[tox][tox] aims to automate and standardize testing in Python. It is part of a larger vision of easing the packaging, testing and release process of Python software.
+
+```
+commands =
+    test: pytest --cov=sanic_opentracing --flake8 sanic_opentracing
+    report: pytest --cov=sanic_opentracing --cov-report=html
+    package: python setup.py sdist
+    publish:  twine upload dist/*
+```
+* After code/test modification, run all unittest with tox.  
+
+```
+tox -e test
+```
+* To view code coverage report   
+Code coverage report data will be generated inside `htmlcov` folder.
+
+```
+tox -e report
+```
+
+* Packaging code into a `Pypi` package   
+Packages will be generated inside `sdist` folder.
+
+```
+git tag 0.8  # Setting proper Versioning
+tox -e package
+```
+
+* Publish package to `Pypi` repository   
+Make sure you have the right permission to the repository, and make sure your package are the one and only package that exists inside `sdist`. Enter your `Pypi` account credentials during the process.
+
+```
+tox -e publish
+```
+* Visit [PyPi Package](https://pypi.org/project/sanic-opentracing/) and make sure everything works as expected.
+
+[tox]: https://github.com/tox-dev/tox
 
 ## References
 - [Flask Opentracing](https://github.com/opentracing-contrib/python-flask)
