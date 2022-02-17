@@ -1,2 +1,2 @@
-sanic==19.6.3
+sanic==20.12.6
 opentracing==2.2.0
